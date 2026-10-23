@@ -1,0 +1,12 @@
+# Seguridad: sin listado de carpetas
+Options -Indexes
+
+# Permite que el encabezado Authorization (token Bearer) llegue a PHP en Apache/XAMPP
+RewriteEngine On
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# Bloquea el acceso directo a archivos sensibles
+<FilesMatch "\.(sql|env|log|md)$">
+    Require all denied
+</FilesMatch>
