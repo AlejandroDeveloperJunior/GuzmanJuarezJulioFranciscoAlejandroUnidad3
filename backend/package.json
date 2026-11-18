@@ -5,7 +5,7 @@
   "scripts": {
     "build": "nest build",
     "typecheck": "tsc --noEmit",
-    "start": "node dist/main",
+    "start": "node dist/src/main",
     "start:dev": "nest start --watch",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push --skip-generate",
