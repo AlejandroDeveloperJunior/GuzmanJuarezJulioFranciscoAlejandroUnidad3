@@ -25,6 +25,10 @@ jobs:
       - run: npx prisma db push --skip-generate
         env:
           DATABASE_URL: "file:./test-ci.db"
+      - run: npm run prisma:seed
+        env:
+          DATABASE_URL: "file:./test-ci.db"
+          ENCRYPTION_KEY_HEX: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
       - run: npm run typecheck
       - run: npm test -- --coverage
         env:
