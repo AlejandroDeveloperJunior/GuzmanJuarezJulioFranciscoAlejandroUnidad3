@@ -1,0 +1,138 @@
+// Esquema relacional Prisma para MediConnect Pro
+// Compatible con SQLite (ejecución local inmediata) y PostgreSQL 16 (producción Docker)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String          @id @default(cuid())
+  email               String          @unique
+  passwordHash        String
+  fullName            String
+  role                String          @default("PATIENT") // ADMIN | DOCTOR | RECEPTIONIST | PATIENT
+  phone               String?
+  mfaEnabled          Boolean         @default(false)
+  mfaSecret           String?
+  failedLoginAttempts Int             @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  doctorProfile       Doctor?
+  patientAppointments Appointment[]   @relation("PatientAppointments")
+  medicalRecords      MedicalRecord[] @relation("PatientRecords")
+  apiKeys             ApiKey[]
+  auditLogs           AuditLog[]
+}
+
+model Clinic {
+  id          String        @id @default(cuid())
+  name        String
+  code        String        @unique
+  address     String
+  city        String
+  state       String        @default("Coahuila")
+  phone       String
+  latitude    Float
+  longitude   Float
+  createdAt   DateTime      @default(now())
+
+  doctors      Doctor[]
+  appointments Appointment[]
+}
+
+model Doctor {
+  id               String          @id @default(cuid())
+  userId           String          @unique
+  clinicId         String
+  specialty        String
+  licenseNumber    String          @unique
+  consultationFee  Float           @default(650.0)
+  scheduleSummary  String          @default("Lun-Vie 09:00-18:00")
+
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clinic           Clinic          @relation(fields: [clinicId], references: [id])
+  appointments     Appointment[]
+  medicalRecords   MedicalRecord[]
+}
+
+model Appointment {
+  id                 String        @id @default(cuid())
+  folio              String        @unique
+  patientId          String
+  doctorId           String
+  clinicId           String
+  scheduledAt        DateTime
+  durationMinutes    Int           @default(30)
+  mode               String        @default("PRESENCIAL") // PRESENCIAL | TELEMEDICINA
+  status             String        @default("PENDING") // PENDING | CONFIRMED | COMPLETED | CANCELLED
+  reason             String
+  feeType            String        @default("STANDARD") // STANDARD | INSURANCE | CORPORATE
+  baseAmount         Float
+  finalAmount        Float
+  paymentStatus      String        @default("PENDING") // PENDING | PAID | REFUNDED
+  paymentProviderRef String?
+  meetingRoomUrl     String?
+  isHolidayWarning   Boolean       @default(false)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  patient            User          @relation("PatientAppointments", fields: [patientId], references: [id])
+  doctor             Doctor        @relation(fields: [doctorId], references: [id])
+  clinic             Clinic        @relation(fields: [clinicId], references: [id])
+  medicalRecord      MedicalRecord?
+}
+
+model MedicalRecord {
+  id                      String       @id @default(cuid())
+  appointmentId           String?      @unique
+  patientId               String
+  doctorId                String
+  icd10Code               String
+  icd10Title              String
+  vitalSignsJson          String
+  // Campos sensibles cifrados en reposo con AES-256-GCM (NOM-004-SSA3-2012)
+  diagnosisEncrypted      String
+  clinicalNotesEncrypted  String
+  prescriptionEncrypted   String
+  digitalSignatureHash    String
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
+
+  appointment             Appointment? @relation(fields: [appointmentId], references: [id])
+  patient                 User         @relation("PatientRecords", fields: [patientId], references: [id])
+  doctor                  Doctor       @relation(fields: [doctorId], references: [id])
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String
+  keyPrefix  String
+  keyHash    String    @unique
+  isActive   Boolean   @default(true)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  userEmail  String?
+  action     String
+  resource   String
+  status     String   // SUCCESS | BLOCKED | ERROR
+  ipAddress  String?
+  details    String?
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
