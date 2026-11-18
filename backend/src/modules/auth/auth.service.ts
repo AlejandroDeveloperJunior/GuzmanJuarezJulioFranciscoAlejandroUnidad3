@@ -2,7 +2,6 @@ import {
   BadRequestException,
   ConflictException,
   HttpException,
-  HttpStatus,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -113,7 +112,7 @@ export class AuthService {
       });
       throw new HttpException(
         `Cuenta bloqueada por múltiples intentos fallidos. Intente en ${minutesLeft} minuto(s).`,
-        HttpStatus.LOCKED,
+        423,
       );
     }
 
@@ -146,7 +145,7 @@ export class AuthService {
       if (shouldLock) {
         throw new HttpException(
           'Cuenta bloqueada durante 15 minutos tras 5 intentos fallidos de acceso.',
-          HttpStatus.LOCKED,
+          423,
         );
       }
 
